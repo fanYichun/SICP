@@ -28,3 +28,14 @@
   (cond ((null? items) '())
         (true (proc (car items))
               (for-each proc (cdr items)))))
+
+(define (deep-reverse tree)
+  (cond ((not (pair? tree)) tree)
+        (true (append (deep-reverse (cdr tree))
+                      (list (deep-reverse (car tree)))))))
+
+(define (fringe tree)
+  (cond ((null? tree) tree)
+        ((not (pair? tree)) (list tree))
+        (true (append (fringe (car tree))
+                       (fringe (cdr tree))))))

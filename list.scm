@@ -39,3 +39,29 @@
         ((not (pair? tree)) (list tree))
         (true (append (fringe (car tree))
                        (fringe (cdr tree))))))
+
+; Exercise 2.31
+(define (tree-map proc tree)
+  (map (lambda (subtree)
+         ; Why can't use cond here?
+         (if (pair? subtree)
+           (tree-map proc subtree)
+           (proc subtree)))
+       tree))
+
+(define (scale-tree tree factor)
+  (tree-map (lambda (x) (* x factor)) tree))
+
+(define (square-tree tree)
+  (tree-map square tree))
+
+; Exercise 2.32
+(define (subsets s)
+  (if (null? s)
+    (list '())
+    (let ((rest (subsets (cdr s))))
+      (append rest
+              (map (lambda (list-x)
+                     (cons (car s)
+                           list-x))
+                   rest)))))

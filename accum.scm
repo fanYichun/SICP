@@ -96,3 +96,62 @@
                   (caddr trip))
                s))
           (unique-trip s)))
+
+; Excersice 2.42
+(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) (safe? positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position new-row k rest-of-queens))
+                 (filter (lambda (each-row)
+                           (not (in-list? each-row (map pos-row rest-of-queens))))
+                         (enumerate-interval 1 board-size))))
+                 ;(enumerate-interval 1 board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+
+(define empty-board '())
+
+(define (position x y) (list x y))
+(define (pos-row pos) (car pos))
+(define (pos-col pos) (cadr pos))
+
+(define (in-list? a listx)
+  (cond ((null? listx) false)
+        ((= a (car listx)) true)
+        (else (in-list? a (cdr listx)))))
+
+(define (adjoin-position new-row k rest-of-queens)
+  (cons (list new-row k) rest-of-queens))
+
+(define (safe? positions)
+  (and true
+       ;(part-safe? positions
+       ;            (lambda (pos1 pos2)
+       ;              (not (= (pos-row pos1)
+       ;                      (pos-row pos2)))))
+       (part-safe? positions
+                   (lambda (pos1 pos2)
+                     (not (= (abs (- (pos-row pos1)
+                                     (pos-row pos2)))
+                             (abs (- (pos-col pos1)
+                                     (pos-col pos2)))))))))
+
+(define (part-safe? positions part-safe-i?)
+  (let ((k-queen (car positions))
+        (rest-queens (cdr positions)))
+    (define (part-safe-iter rest-queens)
+      (cond ((null? rest-queens) true)
+            ((not (part-safe-i? k-queen (car rest-queens))) false)
+            (else (part-safe-iter (cdr rest-queens)))))
+    (part-safe-iter rest-queens)))
+
+(define (solutions-num board-sizes)
+  (map (lambda (board-size)
+         (length (queens board-size)))
+       (enumerate-interval 1 board-sizes)))

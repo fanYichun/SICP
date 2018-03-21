@@ -248,6 +248,8 @@
        (lambda (x y) (tag (expt x y))))
   (put 'raise 'scheme-number
        (lambda (x) (make-complex-from-real-imag x 0)))
+  (put 'project 'scheme-number
+       (lambda (x) (make-rational (round x) 1)))
 
   'done)
 
@@ -342,13 +344,14 @@
   (put 'angle '(complex) angle)
   (put 'equ? '(complex complex) equ?)
   (put '=zero? '(complex) =zero?)
+  (put 'project 'complex real-part)
 
-  (define (add-complex-to-schemenum z x)
-    (make-from-real-imag (+ (real-part z) x)
-                         (imag-part z)))
-  
-  (put 'add '(complex scheme-number)
-       (lambda (z x) (tag (add-complex-to-schemenum z x))))
+;:   (define (add-complex-to-schemenum z x)
+;:     (make-from-real-imag (+ (real-part z) x)
+;:                          (imag-part z)))
+;:   
+;:   (put 'add '(complex scheme-number)
+;:        (lambda (z x) (tag (add-complex-to-schemenum z x))))
 
   'done)
 
@@ -362,9 +365,6 @@
   (apply-generic 'equ? z1 z2))
 (define (=zero? z)
   (apply-generic '=zero? z))
-(define (raise x)
-  (let ((tag (type-tag x)))
-    ((get 'raise tag) (contents x))))
 
 ;;;SECTION 2.5.2
 ;; Coercion
@@ -386,20 +386,30 @@
                     (a1 (car args))
                     (a2 (cadr args)))
                 (if (eq? type1 type2)
-                  (error "No method for these types"
+                  (error "No method for these types(1)"
                          (list op type-tags))
+                  (cond ((can-raise? a1 a2)
+                         (apply-generic op
+                                        (raise a1)
+                                        a2))
+                        ((can-raise? a2 a1)
+                         (apply-generic op
+                                        a1
+                                        (raise a2)))
+                        (else (error "No method for these types(2)"
+                                     (list op type-tags))))))
 
-                  (let ((t1->t2 (get-coercion type1 type2))
-                        (t2->t1 (get-coercion type2 type1)))
-                    (cond (t1->t2
-                           (apply-generic op (t1->t2 a1) a2))
-                          (t2->t1
-                           (apply-generic op a1 (t2->t1 a2)))
-                          (else
-                           (error "No method for these types"
-                                  (list op type-tags))))))
-              (error "No method for these types"
-                     (list op type-tags))))))))
+;                  (let ((t1->t2 (get-coercion type1 type2))
+;                        (t2->t1 (get-coercion type2 type1)))
+;                    (cond (t1->t2
+;                           (apply-generic op (t1->t2 a1) a2))
+;                          (t2->t1
+;                           (apply-generic op a1 (t2->t1 a2)))
+;                          (else
+;                           (error "No method for these types"
+;                                  (list op type-tags))))))
+              (error "No method for these types(3)"
+                     (list op type-tags)))))))
 
 ;; EXERCISE 2.81
 
@@ -411,113 +421,166 @@
 
 (define (exp x y) (apply-generic 'exp x y))
 
-;: ;;;SECTION 2.5.3
-;: 
-;: ;;; ALL procedures in 2.5.3 except make-polynomial
-;: ;;; should be inserted in install-polynomial-package, as indicated
-;: 
-;: (define (add-poly p1 p2)
-;:   (if (same-variable? (variable p1) (variable p2))
-;:       (make-poly (variable p1)
-;:                  (add-terms (term-list p1)
-;:                             (term-list p2)))
-;:       (error "Polys not in same var -- ADD-POLY"
-;:              (list p1 p2))))
-;: 
-;: (define (mul-poly p1 p2)
-;:   (if (same-variable? (variable p1) (variable p2))
-;:       (make-poly (variable p1)
-;:                  (mul-terms (term-list p1)
-;:                             (term-list p2)))
-;:       (error "Polys not in same var -- MUL-POLY"
-;:              (list p1 p2))))
-;: 
-;: ;; *incomplete* skeleton of package
-;: (define (install-polynomial-package)
-;:   ;; internal procedures
-;:   ;; representation of poly
-;:   (define (make-poly variable term-list)
-;:     (cons variable term-list))
-;:   (define (variable p) (car p))
-;:   (define (term-list p) (cdr p))
-;:   ;;[procedures same-variable? and variable? from section 2.3.2]
-;: 
-;:   ;; representation of terms and term lists
-;:   ;;[procedures adjoin-term ... coeff from text below]
-;: 
-;:   ;;(define (add-poly p1 p2) ... )
-;:   ;;[procedures used by add-poly]
-;: 
-;:   ;;(define (mul-poly p1 p2) ... )
-;:   ;;[procedures used by mul-poly]
-;: 
-;:   ;; interface to rest of the system
-;:   (define (tag p) (attach-tag 'polynomial p))
-;:   (put 'add '(polynomial polynomial) 
-;:        (lambda (p1 p2) (tag (add-poly p1 p2))))
-;:   (put 'mul '(polynomial polynomial) 
-;:        (lambda (p1 p2) (tag (mul-poly p1 p2))))
-;: 
-;:   (put 'make 'polynomial
-;:        (lambda (var terms) (tag (make-poly var terms))))
-;:   'done)
-;: 
-;: (define (add-terms L1 L2)
-;:   (cond ((empty-termlist? L1) L2)
-;:         ((empty-termlist? L2) L1)
-;:         (else
-;:          (let ((t1 (first-term L1)) (t2 (first-term L2)))
-;:            (cond ((> (order t1) (order t2))
-;:                   (adjoin-term
-;:                    t1 (add-terms (rest-terms L1) L2)))
-;:                  ((< (order t1) (order t2))
-;:                   (adjoin-term
-;:                    t2 (add-terms L1 (rest-terms L2))))
-;:                  (else
-;:                   (adjoin-term
-;:                    (make-term (order t1)
-;:                               (add (coeff t1) (coeff t2)))
-;:                    (add-terms (rest-terms L1)
-;:                               (rest-terms L2)))))))))
-;: 
-;: (define (mul-terms L1 L2)
-;:   (if (empty-termlist? L1)
-;:       (the-empty-termlist)
-;:       (add-terms (mul-term-by-all-terms (first-term L1) L2)
-;:                  (mul-terms (rest-terms L1) L2))))
-;: 
-;: (define (mul-term-by-all-terms t1 L)
-;:   (if (empty-termlist? L)
-;:       (the-empty-termlist)
-;:       (let ((t2 (first-term L)))
-;:         (adjoin-term
-;:          (make-term (+ (order t1) (order t2))
-;:                     (mul (coeff t1) (coeff t2)))
-;:          (mul-term-by-all-terms t1 (rest-terms L))))))
-;: 
-;: 
-;: ;; Representing term lists
-;: 
-;: (define (adjoin-term term term-list)
-;:   (if (=zero? (coeff term))
-;:       term-list
-;:       (cons term term-list)))
-;: 
-;: (define (the-empty-termlist) '())
-;: (define (first-term term-list) (car term-list))
-;: (define (rest-terms term-list) (cdr term-list))
-;: (define (empty-termlist? term-list) (null? term-list))
-;: 
-;: (define (make-term order coeff) (list order coeff))
-;: (define (order term) (car term))
-;: (define (coeff term) (cadr term))
-;: 
-;: 
-;: ;; Constructor
-;: (define (make-polynomial var terms)
-;:   ((get 'make 'polynomial) var terms))
-;: 
-;: 
+;; EXERCISE 2.83
+
+(define (raise x)
+  (let ((tag (type-tag x)))
+    (if (get 'raise tag)
+      ((get 'raise tag) (contents x))
+      false)))
+
+(define (can-raise? arg1 arg2)
+  (let ((type1 (type-tag arg1))
+        (type2 (type-tag arg2))
+        (raised-arg1 (raise arg1)))
+    (cond ((eq? type1 type2) true)
+          (raised-arg1 (can-raise? raised-arg1 arg2))
+          (else false))))
+
+(define (project x)
+  (let ((tag (type-tag x)))
+    (if (get 'project tag)
+      ((get 'project tag) (contents x))
+      false)))
+
+(define (drop x)
+  (let ((proj (project x)))
+    (if (and proj
+             (equ? (raise proj)
+                   x))
+      (drop proj)
+      x)))
+
+;;;SECTION 2.5.3
+
+;;; ALL procedures in 2.5.3 except make-polynomial
+;;; should be inserted in install-polynomial-package, as indicated
+
+;; *incomplete* skeleton of package
+(define (install-polynomial-package)
+  ;; internal procedures
+  ;; representation of poly
+  (define (make-poly variable term-list)
+    (cons variable term-list))
+  (define (variable p) (car p))
+  (define (term-list p) (cdr p))
+  ;;[procedures same-variable? and variable? from section 2.3.2]
+
+  ;; representation of terms and term lists
+  ;;[procedures adjoin-term ... coeff from text below]
+
+  ;;(define (add-poly p1 p2) ... )
+  ;;[procedures used by add-poly]
+
+  (define (add-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (add-terms (term-list p1)
+                              (term-list p2)))
+        (error "Polys not in same var -- ADD-POLY"
+               (list p1 p2))))
+
+  ; EXERCISE 2.88
+  (define (minus-poly p)
+    (make-poly (variable p)
+               (minus-term (term-list p))))
+  (define (minus-term term-list)
+    (if (null? term-list)
+      '()
+      (cons (make-term (order (first-term term-list))
+                       (sub 0 (coeff (first-term term-list))))
+            (minus-term (rest-terms)))))
+  (define (sub-poly p1 p2)
+    (add-poly p1 (minus-poly p2)))
+  
+  (define (mul-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (mul-terms (term-list p1)
+                              (term-list p2)))
+        (error "Polys not in same var -- MUL-POLY"
+               (list p1 p2))))
+
+  ;;(define (mul-poly p1 p2) ... )
+  ;;[procedures used by mul-poly]
+
+  ;; interface to rest of the system
+  (define (tag p) (attach-tag 'polynomial p))
+  (put 'add '(polynomial polynomial) 
+       (lambda (p1 p2) (tag (add-poly p1 p2))))
+  (put 'mul '(polynomial polynomial) 
+       (lambda (p1 p2) (tag (mul-poly p1 p2))))
+
+  (put 'make 'polynomial
+       (lambda (var terms) (tag (make-poly var terms))))
+
+  ; EXERCISE 2.87
+  (define (zero-list? list-x)
+    (cond ((null? list-x) true)
+          ((= 0 (car list-x)) (zero-list? (cdr list-x)))
+          (else false)))
+
+  (put '=zero? 'polynomial
+       (zero-list? (map coeff term-list)))
+
+  'done)
+
+(define (add-terms L1 L2)
+  (cond ((empty-termlist? L1) L2)
+        ((empty-termlist? L2) L1)
+        (else
+         (let ((t1 (first-term L1)) (t2 (first-term L2)))
+           (cond ((> (order t1) (order t2))
+                  (adjoin-term
+                   t1 (add-terms (rest-terms L1) L2)))
+                 ((< (order t1) (order t2))
+                  (adjoin-term
+                   t2 (add-terms L1 (rest-terms L2))))
+                 (else
+                  (adjoin-term
+                   (make-term (order t1)
+                              (add (coeff t1) (coeff t2)))
+                   (add-terms (rest-terms L1)
+                              (rest-terms L2)))))))))
+
+(define (mul-terms L1 L2)
+  (if (empty-termlist? L1)
+      (the-empty-termlist)
+      (add-terms (mul-term-by-all-terms (first-term L1) L2)
+                 (mul-terms (rest-terms L1) L2))))
+
+(define (mul-term-by-all-terms t1 L)
+  (if (empty-termlist? L)
+      (the-empty-termlist)
+      (let ((t2 (first-term L)))
+        (adjoin-term
+         (make-term (+ (order t1) (order t2))
+                    (mul (coeff t1) (coeff t2)))
+         (mul-term-by-all-terms t1 (rest-terms L))))))
+
+
+;; Representing term lists
+
+(define (adjoin-term term term-list)
+  (if (=zero? (coeff term))
+      term-list
+      (cons term term-list)))
+
+(define (the-empty-termlist) '())
+(define (first-term term-list) (car term-list))
+(define (rest-terms term-list) (cdr term-list))
+(define (empty-termlist? term-list) (null? term-list))
+
+(define (make-term order coeff) (list order coeff))
+(define (order term) (car term))
+(define (coeff term) (cadr term))
+
+
+;; Constructor
+(define (make-polynomial var terms)
+  ((get 'make 'polynomial) var terms))
+
+
 ;: ;; EXERCISE 2.91
 ;: 
 ;: (define (div-terms L1 L2)
@@ -537,11 +600,11 @@
 ;: 
 ;: 
 ;: ;; EXERCISE 2.93
-;: ;: (define p1 (make-polynomial 'x '((2 1)(0 1))))
-;: ;: (define p2 (make-polynomial 'x '((3 1)(0 1))))
-;: ;: (define rf (make-rational p2 p1))
-;: 
-;: 
+;: (define p1 (make-polynomial 'x '((2 1)(0 1))))
+;: (define p2 (make-polynomial 'x '((3 1)(0 1))))
+;: (define rf (make-rational p2 p1))
+
+
 ;: ;; Rational functions
 ;: 
 ;: (define (gcd a b)

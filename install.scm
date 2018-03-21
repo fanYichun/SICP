@@ -3,3 +3,4 @@
 (install-scheme-number-package)
 (install-rational-package)
 (install-complex-package)
+(install-polynomial-package)

@@ -7,7 +7,7 @@
   
    (define (good-enough? guess)
       (define (square x) (* x x))
-      (define error 0.001)
+      (define error 0.0000001)
     
       (if (< (abs (- (improve guess)
                      guess))

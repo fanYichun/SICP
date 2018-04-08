@@ -1,0 +1,185 @@
+;;SECTION 3.3.2
+
+;: (define (front-ptr queue) (car queue))
+;: (define (rear-ptr queue) (cdr queue))
+;: (define (set-front-ptr! queue item) (set-car! queue item))
+;: (define (set-rear-ptr! queue item) (set-cdr! queue item))
+;: 
+;: (define (empty-queue? queue) (null? (front-ptr queue)))
+;: (define (make-queue) (cons '() '()))
+;: 
+;: (define (front-queue queue)
+;:   (if (empty-queue? queue)
+;:       (error "FRONT called with an empty queue" queue)
+;:       (car (front-ptr queue))))
+;: 
+;: (define (insert-queue! queue item)
+;:   (let ((new-pair (cons item '())))
+;:     (cond ((empty-queue? queue)
+;:            (set-front-ptr! queue new-pair)
+;:            (set-rear-ptr! queue new-pair)
+;:            queue)
+;:           (else
+;:            (set-cdr! (rear-ptr queue) new-pair)
+;:            (set-rear-ptr! queue new-pair)
+;:            queue)))) 
+;: 
+;: (define (delete-queue! queue)
+;:   (cond ((empty-queue? queue)
+;:          (error "DELETE! called with an empty queue" queue))
+;:         (else
+;:          (set-front-ptr! queue (cdr (front-ptr queue)))
+;:          queue))) 
+
+;; EXERCISE 3.21
+
+;: (define (print-queue queue)
+;:  (front-ptr queue))
+
+;: (define q1 (make-queue))
+;: (insert-queue! q1 'a)
+;: (insert-queue! q1 'b)
+;: (delete-queue! q1)
+;: (delete-queue! q1)
+
+;; EXERCISE 3.22
+
+(define (make-queue)
+  (let ((front-ptr '())
+        (rear-ptr '()))
+    (define (empty-queue?)
+      (null? front-ptr))
+    (define (front-queue)
+      (if (empty-queue?)
+        (error "FRONT called with and empty queue")
+        (car front-ptr)))
+    (define (set-front-ptr!)
+      (lambda (item)
+        (set! front-ptr item)))
+    (define (set-rear-ptr!)
+      (lambda (item)
+        (set! rear-ptr item)))
+    (define (insert-queue!)
+      (lambda (item)
+        (let ((new-pair (cons item '())))
+          (cond ((empty-queue?)
+                 ((set-front-ptr!) new-pair)
+                 ((set-rear-ptr!) new-pair)
+                 front-ptr)
+                (else
+                  (set-cdr! rear-ptr new-pair)
+                  ((set-rear-ptr!) new-pair)
+                  front-ptr)))))
+    (define (delete-queue!)
+      (cond ((empty-queue?)
+             (error "DELETE! called with an empty queue"))
+            (else
+              ((set-front-ptr!) (cdr front-ptr))
+              front-ptr)))
+    (define (displayatch m)
+      (cond ((eq? m 'empty-queue?) (empty-queue?))
+            ((eq? m 'front-queue) (front-queue))
+            ((eq? m 'insert-queue!) (insert-queue!))
+            ((eq? m 'delete-queue!) (delete-queue!))
+            (else (error "Not defined procedure"))))
+    displayatch))
+
+(define (empty-queue? queue)
+  (queue 'empty-queue?))
+(define (front-queue queue)
+  (queue 'front-queue))
+(define (insert-queue! queue item)
+  ((queue 'insert-queue!) item))
+(define (delete-queue! queue)
+  (queue 'delete-queue!))
+
+;; EXERCISE 3.23
+(define (make-deque)
+  (cons '() '()))
+
+(define (empty-deque? deque)
+  (null? (car deque)))
+
+(define (front-ptr deque)
+  (car deque))
+
+(define (rear-ptr deque)
+  (cdr deque))
+
+(define (set-front-ptr! deque item)
+  (set-car! deque item))
+
+(define (set-rear-ptr! deque item)
+  (set-cdr! deque item))
+
+(define (front-deque deque)
+  (if (empty-deque? deque)
+    (error "FRONT called with an empty deque")
+    (car (front-ptr deque))))
+
+(define (rear-deque deque)
+  (if (empty-deque? deque)
+    (error "REAR called with an empty deque")
+    (car (rear-ptr deque))))
+
+(define (front-insert-deque! deque item)
+  (let ((new-item (cons item (cons '() '()))))
+    (cond ((empty-deque? deque)
+           (set-front-ptr! deque new-item)
+           (set-rear-ptr! deque new-item)
+           (print-deque deque))
+          (else
+            (set-cdr! (cdr new-item) (front-ptr deque))
+            (set-car! (cdr (front-ptr deque)) new-item)
+            (set-front-ptr! deque new-item)
+            (print-deque deque)))))
+
+(define (rear-insert-deque! deque item)
+  (let ((new-item (cons item (cons '() '()))))
+    (cond ((empty-deque? deque)
+           (set-front-ptr! deque new-item)
+           (set-rear-ptr! deque new-item)
+           (print-deque deque))
+          (else
+            (set-cdr! (cdr (rear-ptr deque)) new-item)
+            (set-car! (cdr new-item) (rear-ptr deque))
+            (set-rear-ptr! deque new-item)
+            (print-deque deque)))))
+
+(define (front-delete-deque! deque)
+  (cond ((empty-deque? deque)
+         (error "DELETE! called with an empty deque"))
+        ((eq? (front-ptr deque)
+              (rear-ptr deque))
+         (set-car! deque '())
+         (set-cdr! deque '())
+         (print-deque deque))
+        (else
+          (set-front-ptr! deque (cddr (front-ptr deque)))
+          (set-car! (cdr (front-ptr deque)) '())
+          (print-deque deque))))
+
+(define (rear-delete-deque! deque)
+  (cond ((empty-deque? deque)
+         (error "DELETE! called with an empty deque"))
+        ((eq? (front-ptr deque)
+              (rear-ptr deque))
+         (set-car! deque '())
+         (set-cdr! deque '())
+         (print-deque deque))
+        (else
+          (set-rear-ptr! deque (cadr (rear-ptr deque)))
+          (set-cdr! (cdr (rear-ptr deque)) '())
+          (print-deque deque))))
+
+(define (print-deque deque)
+  (define (print-list lis)
+    (if (null? (cddr lis))
+      (display (car lis))
+      (begin (display (car lis))
+             (print-list (cddr lis)))))
+  (if (empty-deque? deque)
+    (display "Empty")
+    (print-list (car deque)))
+  (newline)
+  1)

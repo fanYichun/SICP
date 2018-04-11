@@ -6,4 +6,5 @@
 *.scm#*
 .#*.scm
 
-allcode/*.scm
+allcode/*
+others/*
